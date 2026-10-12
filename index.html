@@ -1,0 +1,267 @@
+
+
+<!DOCTYPE html>
+
+<html lang="nl">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="theme-color" content="#101014">
+
+<title>Omni — Alles op één plek</title>
+
+<style>
+
+:root{--bg:#101014;--panel:#1c1c24;--text:#f6f6fa;--muted:#a5a5b5;--accent:#a78bfa}
+
+*{box-sizing:border-box}
+
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+
+header{padding:22px 18px 14px;position:sticky;top:0;background:rgba(16,16,20,.96);z-index:2}
+
+.brand{font-size:27px;font-weight:900}
+
+.brand span{color:var(--accent)}
+
+.subtitle{color:var(--muted);margin-top:5px;font-size:13px}
+
+input{width:100%;margin-top:17px;padding:14px;border:1px solid #383844;border-radius:12px;background:var(--panel);color:white;font-size:16px}
+
+nav{display:flex;gap:8px;padding:8px 16px 14px;overflow-x:auto}
+
+nav button,.filters button{border:0;border-radius:20px;padding:10px 15px;color:white;background:var(--panel);white-space:nowrap}
+
+nav button.active,.filters button.active{background:var(--accent);color:#171321;font-weight:700}
+
+main{padding:8px 16px 100px}
+
+h2{font-size:21px;margin:15px 0}
+
+.filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:15px}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+
+.card{background:var(--panel);border-radius:14px;overflow:hidden;min-width:0}
+
+.art{min-height:145px;display:flex;align-items:center;justify-content:center;font-size:52px;background:linear-gradient(145deg,#30294d,#15151e)}
+
+.card:nth-child(4n+2) .art{background:linear-gradient(145deg,#533044,#211720)}
+
+.card:nth-child(4n+3) .art{background:linear-gradient(145deg,#244d50,#142023)}
+
+.card:nth-child(4n+4) .art{background:linear-gradient(145deg,#594626,#211c16)}
+
+.details{padding:12px}
+
+.title{font-weight:750;font-size:15px;overflow-wrap:anywhere}
+
+.meta{color:var(--muted);font-size:12px;margin-top:5px}
+
+.actions{display:flex;gap:7px;margin-top:12px}
+
+.actions button{border:0;border-radius:9px;padding:9px;color:white;background:#343442}
+
+.actions .play{background:var(--accent);color:#171321}
+
+.empty{color:var(--muted);padding:25px 0}
+
+footer{position:fixed;bottom:0;width:100%;text-align:center;padding:13px;color:var(--muted);background:rgba(16,16,20,.97);font-size:12px}
+
+@media(min-width:650px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}header,main{padding-left:28px;padding-right:28px}}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<div class="brand">omni<span>.</span></div>
+
+<div class="subtitle">Jouw entertainment. Eén plek.</div>
+
+<input id="search" type="search" placeholder="Zoek films, series en muziek..." aria-label="Zoeken">
+
+</header>
+
+<nav id="tabs">
+
+<button class="active" data-tab="Alles">Alles</button>
+
+<button data-tab="Films">Films</button>
+
+<button data-tab="Series">Series</button>
+
+<button data-tab="Muziek">Muziek</button>
+
+<button data-tab="Mijn lijst">Mijn lijst</button>
+
+</nav>
+
+<main>
+
+<h2 id="heading">Ontdek</h2>
+
+<div class="filters" id="filters">
+
+<button class="active" data-filter="Alles">Alles</button>
+
+<button data-filter="Netflix">Netflix</button>
+
+<button data-filter="Prime Video">Prime Video</button>
+
+<button data-filter="Disney+">Disney+</button>
+
+<button data-filter="Videoland">Videoland</button>
+
+<button data-filter="Paramount+">Paramount+</button>
+
+<button data-filter="Spotify">Spotify</button>
+
+<button data-filter="Eigen media">Eigen media</button>
+
+</div>
+
+<div id="grid" class="grid"></div>
+
+<div id="empty" class="empty" hidden>Niets gevonden. Probeer een andere zoekopdracht.</div>
+
+</main>
+
+<footer>OMNI · Jouw eigen entertainmentplatform</footer>
+
+<script>
+
+const items=[
+
+{title:"Mijn filmcollectie",type:"Films",service:"Eigen media",art:"🎬"},
+
+{title:"Seriesavond",type:"Series",service:"Netflix",art:"📺"},
+
+{title:"Muziek ontdekken",type:"Muziek",service:"Spotify",art:"🎧"},
+
+{title:"Animatiefilms",type:"Films",service:"Disney+",art:"✨"},
+
+{title:"Nieuwe releases",type:"Films",service:"Prime Video",art:"🍿"},
+
+{title:"Nederlandse series",type:"Series",service:"Videoland",art:"🇳🇱"},
+
+{title:"Films & klassiekers",type:"Films",service:"Paramount+",art:"🌟"},
+
+{title:"Mijn eigen video's",type:"Films",service:"Eigen media",art:"▶️"}
+
+];
+
+let tab="Alles",filter="Alles";
+
+let favorites=JSON.parse(localStorage.getItem("omni-favorites")||"[]");
+
+const grid=document.getElementById("grid");
+
+const search=document.getElementById("search");
+
+const heading=document.getElementById("heading");
+
+const empty=document.getElementById("empty");
+
+function render(){
+
+const q=search.value.toLowerCase().trim();
+
+const shown=items.filter(item=>{
+
+const matchesTab=tab==="Alles"||(tab==="Mijn lijst"?favorites.includes(item.title):item.type===tab);
+
+const matchesFilter=filter==="Alles"||item.service===filter;
+
+const matchesSearch=(item.title+" "+item.type+" "+item.service).toLowerCase().includes(q);
+
+return matchesTab&&matchesFilter&&matchesSearch;
+
+});
+
+heading.textContent=tab==="Alles"?"Ontdek":tab;
+
+grid.innerHTML="";
+
+empty.hidden=shown.length>0;
+
+shown.forEach(item=>{
+
+const saved=favorites.includes(item.title);
+
+const card=document.createElement("article");card.className="card";
+
+const art=document.createElement("div");art.className="art";art.textContent=item.art;
+
+const details=document.createElement("div");details.className="details";
+
+const title=document.createElement("div");title.className="title";title.textContent=item.title;
+
+const meta=document.createElement("div");meta.className="meta";meta.textContent=item.type+" · "+item.service;
+
+const actions=document.createElement("div");actions.className="actions";
+
+const play=document.createElement("button");play.className="play";play.textContent="▶ Open";
+
+play.onclick=()=>alert("Dit is een demo. Later koppelen we hier je eigen media of een ondersteunde dienst aan.");
+
+const fav=document.createElement("button");fav.textContent=saved?"♥":"♡";fav.setAttribute("aria-label","Favoriet wisselen");
+
+fav.onclick=()=>{
+
+favorites=saved?favorites.filter(t=>t!==item.title):[...favorites,item.title];
+
+localStorage.setItem("omni-favorites",JSON.stringify(favorites));render();
+
+};
+
+actions.append(play,fav);details.append(title,meta,actions);card.append(art,details);grid.append(card);
+
+});
+
+}
+
+document.querySelectorAll("#tabs button").forEach(button=>{
+
+button.onclick=()=>{
+
+tab=button.dataset.tab;
+
+document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b===button));
+
+render();
+
+};
+
+});
+
+document.querySelectorAll("#filters button").forEach(button=>{
+
+button.onclick=()=>{
+
+filter=button.dataset.filter;
+
+document.querySelectorAll("#filters button").forEach(b=>b.classList.toggle("active",b===button));
+
+render();
+
+};
+
+});
+
+search.addEventListener("input",render);
+
+render();
+
+</script>
+
+</body>
+
+</html>
